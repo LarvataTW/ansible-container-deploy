@@ -1,0 +1,25 @@
+---
+- name: Make Sure Directories Exists
+  file:
+    path: "{{ template.dir }}"
+    state: directory
+    mode: 0755
+  tags:
+    - setup_config
+
+- name: Reset Template Variables
+  set_fact:
+    template_variables: "{{ template.variables }}"
+  tags:
+    - setup_config
+
+- name: Create Files From Templates
+  template:
+    src: "{{ template.src }}"
+    dest: "{{ template.dir }}/{{ template.name }}"
+    owner: "{{ template.owner }}"
+    group: "{{ template.group }}"
+    mode: "{{ template.mode }}"
+    backup: yes
+  tags:
+    - setup_config

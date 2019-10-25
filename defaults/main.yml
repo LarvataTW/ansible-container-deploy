@@ -1,0 +1,58 @@
+---
+
+# Application Config Files
+
+templates:
+  - name: config.json
+    dir: /etc/application/
+    src: templates/application/config.json.j2
+    owner: ubuntu
+    group: ubuntu
+    mode: 0644
+    variables:
+      DB_NAME: 'application'
+      DB_HOST: '10.10.10.1'
+      DB_PORT: '3306'
+      DB_USER: 'application'
+      DB_PASSWORD: 'application!'
+      REDIS_HOST: '10.10.10.1'
+      REDIS_PORT: '6379'
+
+# Container Services
+
+# graylog_server: tcp://10.10.10.1:514
+# registry_server: 10.10.10.1:5000
+# registry_username: docker
+# registry_password: docker
+
+container_networks:
+  - example_network
+
+containers:
+  - name: redis
+    image: redis
+    tag: 5
+    recreate: no
+    networks:
+      - name: example_network
+    volumes:
+      - /data
+    command: ["redis-server", "--appendonly", "yes"]
+
+  - name: my_app
+    registry: 10.10.10.1:5000
+    image: my_image
+    tag: 0.1.0
+    recreate: yes
+    networks:
+      - name: example_network
+    ports:
+      - "80:80"
+      - "443:443"
+    env:
+      KEY1: value1
+      KEY2: value2
+    volumes:
+      - /tmp:/tmp
+    links:
+      - "my_redis:redis"

@@ -1,0 +1,54 @@
+---
+- name: Create config files
+  include: setup_config.yml template={{ item }}
+  tags:
+    - setup_config
+  with_items: '{{ templates | default([]) }}'
+
+- name: Log into private registry and force re-authorization
+  docker_login:
+    registry_url: "{{ registry_server }}"
+    username: "{{ registry_username }}"
+    password: "{{ registry_password }}"
+    reauthorize: yes
+  register: login_registry
+  when: registry_server is defined
+  tags:
+    - setup_docker_container
+
+- name: Pull Container Images
+  docker_image:
+    name: "{{ item.registry | default('docker.io') }}/{{ item.image }}:{{ item.tag }}"
+  with_items: '{{ containers | default([]) }}'
+  register: pull_container_images
+  when: login_registry
+  tags:
+    - setup_docker_container
+
+- name: Create Container Networks
+  docker_network:
+    name: "{{ item }}"
+    appends: yes
+  with_items:
+      - "{{ container_networks | default([]) }}"
+  register: create_container_networks
+  tags:
+    - setup_docker_container
+
+- name: Running Containers
+  docker_container:
+    name: "{{ item.name }}"
+    image: "{{ item.registry | default('docker.io') }}/{{ item.image }}:{{ item.tag }}"
+    state: started
+    recreate: "{{ item.recreate | default(false) }}"
+    restart_policy: "{{ item.restart_policy | default('always') }}"
+    ports: "{{ item.ports | default([]) }}"
+    env: "{{ item.env | default({}) }}"
+    links: "{{ item.links | default([]) }}"
+    volumes: "{{ item.volumes | default([]) }}"
+    networks: "{{ item.networks | default([]) }}"
+    command: "{{ item.command | default(omit) }}"
+  with_items: '{{ containers | default([]) }}'
+  when: pull_container_images and create_container_networks
+  tags:
+    - setup_docker_container
