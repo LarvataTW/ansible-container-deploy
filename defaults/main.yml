@@ -1,58 +1,63 @@
 ---
 
-# Application Config Files
+# Global Variables
 
-templates:
-  - name: config.json
-    dir: /etc/application/
-    src: templates/application/config.json.j2
-    owner: ubuntu
-    group: ubuntu
-    mode: 0644
-    variables:
-      DB_NAME: 'application'
-      DB_HOST: '10.10.10.1'
-      DB_PORT: '3306'
-      DB_USER: 'application'
-      DB_PASSWORD: 'application!'
-      REDIS_HOST: '10.10.10.1'
-      REDIS_PORT: '6379'
-
-# Container Services
-
-# graylog_server: tcp://10.10.10.1:514
+# graylog_server: tcp://10.10.10.1
 # registry_server: 10.10.10.1:5000
 # registry_username: docker
 # registry_password: docker
+# image_tag: 'latest'
 
-container_networks:
-  - example_network
+# Application Configs
 
-containers:
-  - name: redis
-    image: redis
-    tag: 5
-    recreate: no
-    networks:
-      - name: example_network
-    volumes:
-      - /data
-    command: ["redis-server", "--appendonly", "yes"]
+templates: []
+  #- name: config.json
+  #  dir: /etc/application/
+  #  src: templates/application/application.json.j2
+  #  owner: ubuntu
+  #  group: ubuntu
+  #  mode: "0644"
 
-  - name: my_app
-    registry: 10.10.10.1:5000
-    image: my_image
-    tag: 0.1.0
-    recreate: yes
-    networks:
-      - name: example_network
-    ports:
-      - "80:80"
-      - "443:443"
-    env:
-      KEY1: value1
-      KEY2: value2
-    volumes:
-      - /tmp:/tmp
-    links:
-      - "my_redis:redis"
+# Container Services
+
+container_networks: []
+  #- redis_network
+  #- web_network
+
+container_volumes: []
+  #- log_data
+
+containers: []
+  #- name: redis
+  #  image: redis
+  #  tag: 5
+  #  networks:
+  #    - name: redis_network
+  #  volumes:
+  #    - "/path/to/directory:/data"
+  #  recreate: no
+
+  #- name: web
+  #  registry: "{{ registry_server }}"
+  #  image: web
+  #  tag: 0.1.0
+  #  networks:
+  #    - name: redis_network
+  #    - name: web_network
+  #  ports:
+  #    - "80:80"
+  #    - "443:443"
+  #  env:
+  #    KEY1: value1
+  #    KEY2: value2
+  # healthcheck:
+  #   test: ["CMD", "do", "--something", "arg"]
+  #   interval: 1m30s
+  #   timeout: 10s
+  #   retries: 3
+  #   start_period: 30s
+  #  volumes:
+  #    - log_data:/path/to/web/log/directory
+  #  links:
+  #    - "my_redis:outside_redis"
+  #  recreate: yes

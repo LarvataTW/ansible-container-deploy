@@ -1,9 +1,4 @@
 ---
-- name: Create config files
-  include: setup_config.yml template={{ item }}
-  tags:
-    - setup_config
-  with_items: '{{ templates | default([]) }}'
 
 - name: Log into private registry and force re-authorization
   docker_login:
@@ -12,18 +7,25 @@
     password: "{{ registry_password }}"
     reauthorize: yes
   register: login_registry
-  when: registry_server is defined
   tags:
     - setup_docker_container
 
 - name: Pull Container Images
   docker_image:
     name: "{{ item.registry | default('docker.io') }}/{{ item.image }}:{{ item.tag }}"
+    force: true
   with_items: '{{ containers | default([]) }}'
   register: pull_container_images
   when: login_registry
   tags:
     - setup_docker_container
+
+- name: Create config files
+  include: setup_config.yml template={{ item }}
+  tags:
+    - setup_config
+  with_items: '{{ templates | default([]) }}'
+  when: pull_container_images
 
 - name: Create Container Networks
   docker_network:
@@ -35,19 +37,32 @@
   tags:
     - setup_docker_container
 
+- name: Create Container Volumes
+  docker_volume:
+    name: "{{ item }}"
+  with_items:
+      - "{{ container_volumes | default([]) }}"
+  register: create_container_volumes
+  tags:
+    - setup_docker_container
+
 - name: Running Containers
   docker_container:
     name: "{{ item.name }}"
     image: "{{ item.registry | default('docker.io') }}/{{ item.image }}:{{ item.tag }}"
     state: started
-    recreate: "{{ item.recreate | default(false) }}"
     restart_policy: "{{ item.restart_policy | default('always') }}"
-    ports: "{{ item.ports | default([]) }}"
-    env: "{{ item.env | default({}) }}"
-    links: "{{ item.links | default([]) }}"
-    volumes: "{{ item.volumes | default([]) }}"
-    networks: "{{ item.networks | default([]) }}"
+    recreate: "{{ item.recreate | default(omit) }}"
+    cpuset_cpus: "{{ item.cpuset_cpus | default(omit) }}"
+    ports: "{{ item.ports | default(omit) }}"
+    env: "{{ item.env | default(omit) }}"
+    env_file: "{{ item.env_file | default(omit) }}"
+    links: "{{ item.links | default(omit) }}"
+    volumes: "{{ item.volumes | default(omit) }}"
+    networks: "{{ item.networks | default(omit) }}"
+    entrypoint: "{{ item.entrypoint | default(omit) }}"
     command: "{{ item.command | default(omit) }}"
+    healthcheck: "{{ item.healthcheck | default(omit) }}"
   with_items: '{{ containers | default([]) }}'
   when: pull_container_images and create_container_networks
   tags:
